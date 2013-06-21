@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 import shutil
 
-version = '0.4'
+version = '0.12'
 
 # get documentation from the README
 try:
@@ -12,11 +12,11 @@ except (OSError, IOError):
     description = ''
 
 # dependencies
-deps = ['marionette_client', 'mozdevice']
+deps = ['marionette_client==0.5.31', 'mozdevice']
 
 # copy atoms directory over
 setupdir = os.path.dirname(__file__)
-jsdir = os.path.join(setupdir, os.pardir, os.pardir, 'atoms')
+jsdir = os.path.join(setupdir, os.pardir, 'atoms')
 pythondir = os.path.join(setupdir, 'gaiatest', 'atoms')
 
 if os.path.isdir(jsdir):
@@ -41,7 +41,7 @@ setup(name='gaiatest',
       url='https://developer.mozilla.org/en-US/docs/Marionette',
       license='MPL',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
-      package_data={'gaiatest': ['atoms/*.js']},
+      package_data={'gaiatest': ['atoms/*.js', 'resources/*.*']},
       include_package_data=True,
       zip_safe=False,
       entry_points="""
