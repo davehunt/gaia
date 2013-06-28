@@ -45,3 +45,9 @@ manifest.appcache
 /tools/xpcwindow/vendor/
 
 /outoftree_apps/
+
+*.pyc
+/tests/python/gaia-ui-tests/build/
+/tests/python/gaia-ui-tests/dist/
+/tests/python/gaia-ui-tests/gaiatest.egg-info
+/tests/python/gaia-ui-tests/gaiatest/atoms/

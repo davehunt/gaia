@@ -6,48 +6,173 @@
 
 var GaiaDataLayer = {
 
-  insertContact: function(cdata) {
-    contact = new mozContact();
-    contact.init(cdata);
-    var request = window.navigator.mozContacts.save(contact);
-
-    request.onerror = function onerror() {
-      console.log('Error saving contact', request.error.name);
+  pairBluetoothDevice: function(aDeviceName) {
+    var req = window.navigator.mozBluetooth.getDefaultAdapter();
+    req.onsuccess = function() {
+      var adapter = req.result;
+      adapter.ondevicefound = function(aEvent) {
+        device = aEvent.device;
+        if (device.name === aDeviceName) {
+          var pair = adapter.pair(device);
+          marionetteScriptFinished(true);
+        }
+      };
+      var discovery = adapter.startDiscovery();
     };
-
-    request.onsuccess = function onsuccess() {
-      console.log('Success saving contact', request);
-    };
-    return request;
   },
 
-  findAndRemoveContact: function(cdata) {
-    var options = {
-      filterBy: ['familyName'],
-      filterOp: 'contains',
-      filterValue: cdata['familyName']
+  unpairAllBluetoothDevices: function() {
+    var req_get_adapter = window.navigator.mozBluetooth.getDefaultAdapter();
+    req_get_adapter.onsuccess = function() {
+      adapter = req_get_adapter.result;
+      var req = adapter.getPairedDevices();
+      req.onsuccess = function() {
+        var total = req.result.slice().length;
+        for (var i = total; i > 0; i--) {
+          var up = adapter.unpair(req.result.slice()[i-1]);
+        }
+      };
     };
+    marionetteScriptFinished(true);
+  },
 
-    contact = window.navigator.mozContacts.find(options);
-
-    contact.onerror = function onerror() {
-      console.log('Could not find contact', contact.error.name);
-    };
-
-    contact.onsuccess = function onsuccess() {
-      console.log('Success finding contact', contact);
-      if (contact.result.length > 0) {
-        return window.navigator.mozContacts.remove(contact.result[0]);
-      }
+  disableBluetooth: function() {
+    var bluetooth = window.navigator.mozBluetooth;
+    if (bluetooth.enabled) {
+      console.log('trying to disable bluetooth');
+      this.setSetting('bluetooth.enabled', false, false);
+      waitFor(
+        function() {
+          marionetteScriptFinished(true);
+        },
+        function() {
+          console.log('bluetooth enable status: ' + bluetooth.enabled);
+          return bluetooth.enabled === false;
+        }
+      );
+    }
+    else {
+      console.log('bluetooth already disabled');
+      marionetteScriptFinished(true);
     }
   },
 
-  getSetting: function(aName) {
+  enableBluetooth: function() {
+    var bluetooth = window.navigator.mozBluetooth;
+    if (!bluetooth.enabled) {
+      console.log('trying to enable bluetooth');
+      this.setSetting('bluetooth.enabled', true, false);
+      waitFor(
+        function() {
+          marionetteScriptFinished(true);
+        },
+        function() {
+          console.log('bluetooth enable status: ' + bluetooth.enabled);
+          return bluetooth.enabled === true;
+        }
+      );
+    }
+    else {
+      console.log('bluetooth already enabled');
+      marionetteScriptFinished(true);
+    }
+  },
+
+  insertContact: function(aContact) {
+    SpecialPowers.addPermission('contacts-create', true, document);
+    var contact = new mozContact();
+    contact.init(aContact);
+    var req = window.navigator.mozContacts.save(contact);
+    req.onsuccess = function () {
+      console.log('success saving contact');
+      SpecialPowers.removePermission('contacts-create', document);
+      marionetteScriptFinished(true);
+    };
+    req.onerror = function () {
+      console.error('error saving contact', req.error.name);
+      SpecialPowers.removePermission('contacts-create', document);
+      marionetteScriptFinished(false);
+    };
+  },
+
+  getAllContacts: function(aCallback) {
+    var callback = aCallback || marionetteScriptFinished;
+    SpecialPowers.addPermission('contacts-read', true, document);
+    var req = window.navigator.mozContacts.find({});
+    req.onsuccess = function () {
+      console.log('success finding contacts');
+      SpecialPowers.removePermission('contacts-read', document);
+      callback(req.result);
+    };
+    req.onerror = function () {
+      console.error('error finding contacts', req.error.name);
+      SpecialPowers.removePermission('contacts-read', document);
+      callback([]);
+    };
+  },
+
+  getSIMContacts: function(aCallback) {
+    var callback = aCallback || marionetteScriptFinished;
+    SpecialPowers.addPermission('contacts-read', true, document);
+    var req = window.navigator.mozContacts.getSimContacts('ADN');
+    req.onsuccess = function () {
+      console.log('success finding contacts');
+      SpecialPowers.removePermission('contacts-read', document);
+      callback(req.result);
+    };
+    req.onerror = function () {
+      console.error('error finding contacts', req.error.name);
+      SpecialPowers.removePermission('contacts-read', document);
+      callback([]);
+    };
+  },
+
+  removeAllContacts: function() {
+    var self = this;
+    this.getAllContacts(function (aContacts) {
+      if (aContacts.length > 0) {
+        var contactsLength = aContacts.length;
+        var done = 0;
+        for (var i = 0; i < contactsLength; i++) {
+          self.removeContact(aContacts[i], function () {
+            if (++done === contactsLength) {
+              marionetteScriptFinished(true);
+            }
+          });
+        }
+      }
+      else {
+        console.log('no contacts to remove');
+          marionetteScriptFinished(true);
+      }
+    });
+  },
+
+  removeContact: function(aContact, aCallback) {
+    var callback = aCallback || marionetteScriptFinished;
+    SpecialPowers.addPermission('contacts-write', true, document);
+    console.log("removing contact with id '" + aContact.id + "'")
+    var req = window.navigator.mozContacts.remove(aContact);
+    req.onsuccess = function() {
+      console.log("success removing contact with id '" + aContact.id + "'");
+      SpecialPowers.removePermission('contacts-write', document);
+      callback(true);
+    };
+    req.onerror = function() {
+      console.error("error removing contact with id '" + aContacts[i].id + "'");
+      SpecialPowers.removePermission('contacts-write', document);
+      callback(false);
+    };
+  },
+
+  getSetting: function(aName, aCallback) {
+    var callback = aCallback || marionetteScriptFinished;
+    SpecialPowers.addPermission('settings-read', true, document);
     var req = window.navigator.mozSettings.createLock().get(aName);
     req.onsuccess = function() {
       console.log('setting retrieved');
       let result = aName === '*' ? req.result : req.result[aName];
-      marionetteScriptFinished(result);
+      callback(result);
     };
     req.onerror = function() {
       console.log('error getting setting', req.error.name);
@@ -55,6 +180,7 @@ var GaiaDataLayer = {
   },
 
   setSetting: function(aName, aValue, aReturnOnSuccess) {
+    SpecialPowers.addPermission('settings-readwrite', true, document);
     var returnOnSuccess = aReturnOnSuccess || aReturnOnSuccess === undefined;
     var setting = {};
     setting[aName] = aValue;
@@ -218,7 +344,7 @@ var GaiaDataLayer = {
     return window.navigator.mozTelephony.active.state;
   },
 
-  enableCellData: function() {
+  connectToCellData: function() {
     var manager = window.navigator.mozMobileConnection;
 
     if (!manager.data.connected) {
@@ -232,64 +358,152 @@ var GaiaDataLayer = {
       this.setSetting('ril.data.enabled', true, false);
     }
     else {
-      console.log('cell data already enabled');
+      console.log('cell data already connected');
       marionetteScriptFinished(true);
     }
   },
 
   disableCellData: function() {
-    var manager = window.navigator.mozMobileConnection;
+    var self = this;
+    this.getSetting('ril.data.enabled', function(aCellDataEnabled) {
+      var manager = window.navigator.mozMobileConnection;
+      if (aCellDataEnabled) {
+        waitFor(
+          function() {
+            console.log('cell data disabled');
+            marionetteScriptFinished(true);
+          },
+          function() { return !manager.data.connected; }
+        );
+        self.setSetting('ril.data.enabled', false, false);
+      }
+      else {
+        console.log('cell data already disabled');
+        marionetteScriptFinished(true);
+      }
+    });
+  },
 
-    if (manager.data.connected) {
-      waitFor(
-        function() {
-          console.log('cell data disabled');
-          marionetteScriptFinished(true);
-        },
-        function() { return !manager.data.connected; }
-      );
-      this.setSetting('ril.data.enabled', false, false);
+  getAllPictures: function () {
+    this.getFiles('pictures');
+  },
+
+  getAllVideos: function () {
+    this.getFiles('videos');
+  },
+
+  getAllMusic: function () {
+    this.getFiles('music');
+  },
+
+  getFiles: function (aType, aCallback) {
+    var callback = aCallback || marionetteScriptFinished;
+    var files = [];
+    console.log('getting', aType);
+    var storage = navigator.getDeviceStorage(aType);
+    var req = storage.enumerate();
+    req.onsuccess = function() {
+      var file = req.result;
+      if (file) {
+        if (aType === 'music' && file.name.slice(0, 5) === 'DCIM/' && file.name.slice(-4) === '.3gp') {
+          req.continue();
+        }
+        else {
+          files.push(file.name);
+          req.continue();
+        }
+      }
+      else {
+        callback(files);
+      }
+    };
+    req.onerror = function() {
+      console.error('failed to enumerate ' + aType, req.error.name);
+      callback(false);
+    };
+  },
+
+  deleteAllSms: function(aCallback) {
+    var callback = aCallback || marionetteScriptFinished;
+    console.log('searching for sms messages');
+
+    SpecialPowers.addPermission("sms", true, document);
+    SpecialPowers.setBoolPref("dom.sms.enabled", true);
+    let sms = window.navigator.mozSms;
+
+    let msgList = new Array();
+    let filter = new MozSmsFilter;
+    let request = sms.getMessages(filter, false);
+
+    request.onsuccess = function(event) {
+      var cursor = event.target.result;
+      // Check if message was found
+      if (cursor && cursor.message) {
+        msgList.push(cursor.message.id);
+        // Now get next message in the list
+        cursor.continue();
+      } else {
+        // No (more) messages found
+        if (msgList.length) {
+          console.log("found " + msgList.length + " sms messages to delete");
+          deleteSmsMsgs(msgList);
+        } else {
+          console.log("zero sms messages found");
+          disableSms();
+          callback(true);
+        }
+      }
+    };
+
+    request.onerror = function(event) {
+      console.log("sms.getMessages error: " + event.target.error.name);
+      disableSms();
+      callback(false);
+    };
+
+    function deleteSmsMsgs(msgList) {
+      let smsId = msgList.shift();
+      console.log("deleting sms id: " + smsId);
+      let request = sms.delete(smsId);
+
+      request.onsuccess = function(event) {
+        if (event.target.result) {
+          // Message deleted, continue until none are left
+          if (msgList.length) {
+            deleteSmsMsgs(msgList);
+          } else {
+            // All messages deleted
+            console.log('finished deleting all sms messages');
+            disableSms();
+            callback(true);
+          }
+        } else {
+          console.log("sms delete failed");
+          disableSms();
+          callback(false);
+        }
+      };
+
+      request.onerror = function(event) {
+        console.log("sms.delete request returned unexpected error: "
+            + event.target.error.name );
+        disableSms();
+        callback(false);
+      };
     }
-    else {
-      console.log('cell data already disabled');
-      marionetteScriptFinished(true);
+
+    function disableSms() {
+      SpecialPowers.removePermission("sms", document);
+      SpecialPowers.clearUserPref("dom.sms.enabled");
     }
   },
 
-  getAllMediaFiles: function(aCallback) {
-    var callback = aCallback || marionetteScriptFinished;
-    var mediaTypes = ['pictures', 'videos', 'music'];
-    var remainingMediaTypes = mediaTypes.length;
-    var media = [];
-    mediaTypes.forEach(function(aType) {
-      console.log('getting', aType);
-      var storage = navigator.getDeviceStorage(aType);
-      var req = storage.enumerate();
-      req.onsuccess = function() {
-        var file = req.result;
-        if (file) {
-          if (aType === 'music' && file.name.slice(0, 5) === 'DCIM/' &&
-              file.name.slice(-4) === '.3gp') {
-            req.continue();
-          }
-          else {
-            media.push(file.name);
-            req.continue();
-          }
-        }
-        else {
-          remainingMediaTypes--;
-        }
-      };
-      req.onerror = function() {
-        console.error('failed to enumerate ' + aType, req.error.name);
-        callback(false);
-      };
+  deleteAllAlarms: function() {
+    window.wrappedJSObject.AlarmManager.getAlarmList (function(aList) {
+      aList.forEach(function(aAlarm) {
+         console.log("Deleting alarm with id  '" + aAlarm.id + "'");
+         window.wrappedJSObject.AlarmManager.delete(aAlarm);
+      });
     });
-
-    waitFor(
-      function() { callback(media); },
-      function() { return remainingMediaTypes === 0; }
-    );
   }
 };
