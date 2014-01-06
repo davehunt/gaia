@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import time
-
 from marionette.by import By
 from gaiatest.apps.base import Base
 
@@ -26,9 +24,7 @@ class BookmarkMenu(Base):
     def type_bookmark_title(self, value):
         element = self.marionette.find_element(*self._bookmark_title_input_locator)
         element.clear()
-        element.send_keys(value)
-        # Here we must dismiss the keyboard because it obscures the elements on the page
-        # Marionette cannot scroll them into view because it is a modal frame
+        self.keyboard.send(value)
         self.keyboard.dismiss()
         self.switch_to_add_bookmark_frame()
 

@@ -25,6 +25,7 @@ class Calendar(Base):
     def launch(self):
         Base.launch(self)
         self.wait_for_element_displayed(*self._current_month_year_locator)
+        self.marionette.find_element(*self._hint_swipe_to_navigate_locator).tap()
         self.wait_for_element_not_displayed(*self._hint_swipe_to_navigate_locator)
 
     @property

@@ -2,13 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import time
-
 from marionette.by import By
 from marionette.errors import NoSuchElementException
-from marionette.errors import ElementNotVisibleException
-from marionette.errors import TimeoutException
 from marionette.errors import StaleElementException
+from marionette.wait import Wait
 
 from gaiatest import GaiaApps
 from gaiatest import GaiaData
@@ -28,81 +25,41 @@ class Base(object):
         self.app = self.apps.launch(self.name, launch_timeout=launch_timeout)
 
     def wait_for_element_present(self, by, locator, timeout=None):
-        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000) or 30
-        end_time = float(timeout) + time.time()
-
-        while time.time() < end_time:
-            time.sleep(0.5)
-            try:
-                return self.marionette.find_element(by, locator)
-            except NoSuchElementException:
-                pass
-        else:
-            raise TimeoutException(
-                'Element %s not found before timeout' % locator)
+        # TODO: Remove when we're using a version of Marionette with bug 957248 fixed
+        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
+        return Wait(self.marionette, timeout, ignored_exceptions=NoSuchElementException).until(
+            lambda m: m.find_element(by, locator))
 
     def wait_for_element_not_present(self, by, locator, timeout=None):
-        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000) or 30
-        end_time = float(timeout) + time.time()
-
-        while time.time() < end_time:
-            time.sleep(0.5)
+        if self.is_element_present:
+            # TODO: Remove when we're using a version of Marionette with bug 957248 fixed
+            timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
             try:
-                self.marionette.find_element(by, locator)
+                return Wait(self.marionette, timeout).until(
+                    lambda m: not m.find_element(by, locator))
             except NoSuchElementException:
-                break
-        else:
-            raise TimeoutException(
-                'Element %s still present after timeout' % locator)
+                pass
 
     def wait_for_element_displayed(self, by, locator, timeout=None):
-        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000) or 30
-        end_time = float(timeout) + time.time()
-        e = None
-        while time.time() < end_time:
-            time.sleep(0.5)
-            try:
-                if self.marionette.find_element(by, locator).is_displayed():
-                    break
-            except (NoSuchElementException, StaleElementException, ElementNotVisibleException) as e:
-                pass
-        else:
-            if isinstance(e, NoSuchElementException):
-                raise TimeoutException('Element %s not present before timeout' % locator)
-            else:
-                raise TimeoutException('Element %s present but not displayed before timeout' % locator)
+        # TODO: Remove when we're using a version of Marionette with bug 957248 fixed
+        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
+        Wait(self.marionette, timeout).until(
+            lambda m: self.wait_for_element_present(by, locator).is_displayed())
 
     def wait_for_element_not_displayed(self, by, locator, timeout=None):
-        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000) or 30
-        end_time = float(timeout) + time.time()
-
-        while time.time() < end_time:
-            time.sleep(0.5)
+        if self.is_element_displayed(by, locator):
+            # TODO: Remove when we're using a version of Marionette with bug 957248 fixed
+            timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
             try:
-                if not self.marionette.find_element(by, locator).is_displayed():
-                    break
-            except StaleElementException:
-                pass
-            except NoSuchElementException:
-                break
-        else:
-            raise TimeoutException(
-                'Element %s still visible after timeout' % locator)
-
-    def wait_for_condition(self, method, timeout=None, message="Condition timed out"):
-        """Calls the method provided with the driver as an argument until the return value is not False."""
-        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000) or 30
-        end_time = float(timeout) + time.time()
-        while time.time() < end_time:
-            try:
-                value = method(self.marionette)
-                if value:
-                    return value
+                Wait(self.marionette, timeout).until(
+                    lambda m: not self.wait_for_element_present(by, locator).is_displayed())
             except (NoSuchElementException, StaleElementException):
                 pass
-            time.sleep(0.5)
-        else:
-            raise TimeoutException(message)
+
+    def wait_for_condition(self, method, timeout=None):
+        # TODO: Remove when we're using a version of Marionette with bug 957248 fixed
+        timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
+        Wait(self.marionette, timeout).until(method)
 
     def is_element_present(self, by, locator):
         self.marionette.set_search_timeout(0)
@@ -115,10 +72,13 @@ class Base(object):
             self.marionette.set_search_timeout(self.marionette.timeout or 10000)
 
     def is_element_displayed(self, by, locator):
+        self.marionette.set_search_timeout(0)
         try:
             return self.marionette.find_element(by, locator).is_displayed()
-        except (NoSuchElementException, ElementNotVisibleException):
+        except NoSuchElementException:
             return False
+        finally:
+            self.marionette.set_search_timeout(self.marionette.timeout or 10000)
 
     def select(self, match_string):
         # cheeky Select wrapper until Marionette has its own
@@ -130,7 +90,8 @@ class Base(object):
         # have to go back to top level to get the B2G select box wrapper
         self.marionette.switch_to_frame()
 
-        li = self.wait_for_element_present(*_list_item_locator)
+        self.wait_for_element_displayed(*_list_item_locator)
+        li = self.marionette.find_element(*_list_item_locator)
 
        # TODO Remove scrollintoView upon resolution of bug 877651
         self.marionette.execute_script(
@@ -150,6 +111,14 @@ class Base(object):
     def keyboard(self):
         from gaiatest.apps.keyboard.app import Keyboard
         return Keyboard(self.marionette)
+
+    def wait_for_system_banner(self):
+        """Waits for the system banner to appear and then disappear"""
+        self.marionette.switch_to_frame()
+        system_banner_locator = (By.ID, 'system-banner')
+        self.wait_for_element_displayed(*system_banner_locator)
+        self.wait_for_element_not_displayed(*system_banner_locator)
+        self.apps.switch_to_displayed_app()
 
 
 class PageRegion(Base):

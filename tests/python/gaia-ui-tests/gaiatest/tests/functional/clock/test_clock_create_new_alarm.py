@@ -36,7 +36,7 @@ class TestClockCreateNewAlarm(GaiaTestCase):
         self.clock = new_alarm.tap_done()
 
         # verify the banner-countdown message appears
-        alarm_msg = self.clock.banner_countdown_notification
+        alarm_msg = self.clock.dismiss_banner()
         self.assertTrue('The alarm is set for' in alarm_msg, 'Actual banner message was: "' + alarm_msg + '"')
 
         # ensure the new alarm has been added and is displayed
@@ -44,7 +44,6 @@ class TestClockCreateNewAlarm(GaiaTestCase):
                         'Alarms count did not increment')
 
         # verify the label of alarm
-        self.clock.wait_for_banner_not_visible()
         alarms = self.clock.alarms
         self.assertEqual(len(alarms), 1)
         self.assertEqual(alarms[0].label, alarm_label_text)
@@ -60,7 +59,7 @@ class TestClockCreateNewAlarm(GaiaTestCase):
         # edit_alarm.spin_hour24()
 
         edit_alarm.tap_done()
-        self.clock.wait_for_banner_not_visible()
+        self.clock.dismiss_banner()
 
         # TODO: assert that alarm time has changed after Bug 946130 is fixed
 
@@ -70,5 +69,5 @@ class TestClockCreateNewAlarm(GaiaTestCase):
 
         # turn on the alarm
         self.clock.alarms[0].tap_checkbox()
-        self.clock.wait_for_banner_not_visible()
+        self.clock.dismiss_banner()
         self.assertTrue(self.clock.alarms[0].is_alarm_active, 'user should be able to turn off the alarm.')

@@ -53,7 +53,4 @@ class TestCostControlDataAlertMobile(GaiaTestCase):
         self.marionette.switch_to_frame(usage_iframe)
 
         # make sure the color changed
-        self.wait_for_condition(
-            lambda m: 'reached-limit' in self.marionette.find_element(*self._data_usage_view_locator).get_attribute('class'),
-            message='Data usage bar did not breach limit'
-        )
+        self.wait_for_condition(lambda m: 'reached-limit' in self.marionette.find_element(*self._data_usage_view_locator).get_attribute('class'))
