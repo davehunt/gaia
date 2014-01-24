@@ -49,8 +49,7 @@ class FTUStep3(CostControl):
 
         # clear the original assigned value and set it to the new value
         self.wait_for_element_displayed(*self._size_input_locator)
-        size = self.marionette.find_element(*self._size_input_locator)
-        size.clear()
+        self.marionette.find_element(*self._size_input_locator).clear()
         self.keyboard.send(value)
         self.switch_to_ftu()
         self.marionette.find_element(*self._usage_done_button_locator).tap()

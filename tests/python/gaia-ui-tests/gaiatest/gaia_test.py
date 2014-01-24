@@ -1053,7 +1053,7 @@ class GaiaTestCase(MarionetteTestCase, B2GTestCaseMixin):
             lambda m: m.find_element(by, locator))
 
     def wait_for_element_not_present(self, by, locator, timeout=None):
-        if self.is_element_present:
+        if self.is_element_present(by, locator):
             # TODO: Remove when we're using a version of Marionette with bug 957248 fixed
             timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
             try:
@@ -1066,7 +1066,7 @@ class GaiaTestCase(MarionetteTestCase, B2GTestCaseMixin):
         # TODO: Remove when we're using a version of Marionette with bug 957248 fixed
         timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
         Wait(self.marionette, timeout).until(
-            lambda m: self.wait_for_element_present(by, locator).is_displayed())
+            lambda m: self.wait_for_element_present(by, locator, timeout).is_displayed())
 
     def wait_for_element_not_displayed(self, by, locator, timeout=None):
         if self.is_element_displayed(by, locator):
@@ -1074,7 +1074,7 @@ class GaiaTestCase(MarionetteTestCase, B2GTestCaseMixin):
             timeout = timeout or (self.marionette.timeout and self.marionette.timeout / 1000.0) or 30
             try:
                 Wait(self.marionette, timeout).until(
-                    lambda m: not self.wait_for_element_present(by, locator).is_displayed())
+                    lambda m: not self.wait_for_element_present(by, locator, timeout).is_displayed())
             except (NoSuchElementException, StaleElementException):
                 pass
 

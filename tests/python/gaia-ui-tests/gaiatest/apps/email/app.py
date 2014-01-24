@@ -107,16 +107,16 @@ class Email(Base):
         return [Message(self.marionette, mail) for mail in self.marionette.find_elements(*self._email_locator)]
 
     def wait_for_emails_to_sync(self):
+        element = self.marionette.find_element(*self._refresh_button_locator)
         self.wait_for_condition(
-            lambda m: m.find_element(
-                *self._refresh_button_locator).get_attribute(
+            lambda m: element.get_attribute(
                 'data-state') == 'synchronized')
 
     def wait_for_message_list(self):
-        message_list = self.marionette.find_element(*self._message_list_locator)
+        element = self.marionette.find_element(*self._message_list_locator)
         self.wait_for_condition(
-            lambda m: message_list.is_displayed() and
-            message_list.location['x'] == 0)
+            lambda m: element.is_displayed() and
+            element.location['x'] == 0)
 
     def wait_for_email(self, subject, timeout=120):
         Wait(self.marionette, timeout, interval=5).until(

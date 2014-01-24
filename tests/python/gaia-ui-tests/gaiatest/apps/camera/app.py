@@ -5,7 +5,6 @@
 import time
 
 from marionette.by import By
-from marionette.wait import Wait
 
 from gaiatest.apps.base import Base
 from gaiatest.apps.base import PageRegion
@@ -106,7 +105,7 @@ class Camera(Base):
         self.wait_for_condition(lambda m: self.is_filmstrip_hidden)
 
     def wait_for_capture_ready(self):
-        Wait(self.marionette).until(
+        self.wait_for_condition(
             lambda m: m.execute_script('return arguments[0].readyState;', [
                 self.wait_for_element_present(*self._viewfinder_locator)]) > 0)
 
