@@ -42,14 +42,20 @@ class Clock(Base):
     def alarms(self):
         return [self.Alarm(self.marionette, alarm) for alarm in self.marionette.find_elements(*self._all_alarms_locator)]
 
-    def dismiss_banner(self):
-        self.wait_for_element_displayed(*self._banner_countdown_notification_locator)
-        banner = self.marionette.find_element(
+    @property
+    def banner_notification(self):
+        self.wait_for_element_displayed(
             *self._banner_countdown_notification_locator)
-        text = banner.text
-        banner.tap()
-        self.wait_for_element_not_displayed(*self._banner_countdown_notification_locator)
-        return text
+        return self.marionette.find_element(
+            *self._banner_countdown_notification_locator).text
+
+    def dismiss_banner(self):
+        self.wait_for_element_displayed(
+            *self._banner_countdown_notification_locator)
+        self.marionette.find_element(
+            *self._banner_countdown_notification_locator).tap()
+        self.wait_for_element_not_displayed(
+            *self._banner_countdown_notification_locator)
 
     def wait_for_new_alarm_button(self):
         self.wait_for_element_displayed(*self._alarm_create_new_locator)
