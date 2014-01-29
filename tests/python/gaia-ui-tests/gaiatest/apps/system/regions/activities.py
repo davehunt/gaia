@@ -21,7 +21,11 @@ class Activities(Base):
         Base.__init__(self, marionette)
         self.marionette.switch_to_frame()
         view = self.marionette.find_element(*self._actions_menu_locator)
-        self.wait_for_condition(lambda m: view.location['y'] == 0)
+        if 'contextmenu' in view.get_attribute('class'):
+            # final position is below the status bar
+            self.wait_for_condition(lambda m: view.location['y'] == 20)
+        else:
+            self.wait_for_condition(lambda m: view.location['y'] == 0)
 
     def tap_wallpaper(self):
         self.marionette.find_element(*self._wallpaper_button_locator).tap()
