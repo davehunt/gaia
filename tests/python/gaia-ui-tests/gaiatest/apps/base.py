@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import time
+
 from marionette.by import By
 from marionette.errors import NoSuchElementException
 from marionette.errors import StaleElementException
@@ -79,20 +81,20 @@ class Base(object):
 
         # have to go back to top level to get the B2G select box wrapper
         self.marionette.switch_to_frame()
+        time.sleep(0.2)
 
-        self.wait_for_element_displayed(*_list_item_locator)
-        li = self.marionette.find_element(*_list_item_locator)
+        li = self.wait_for_element_present(*_list_item_locator)
 
        # TODO Remove scrollintoView upon resolution of bug 877651
         self.marionette.execute_script(
             'arguments[0].scrollIntoView(false);', [li])
         li.tap()
 
-        close_button = self.marionette.find_element(*_close_button_locator)
-
         # Tap close and wait for it to hide
+        close_button = self.marionette.find_element(*_close_button_locator)
         close_button.tap()
         self.wait_for_element_not_displayed(*_close_button_locator)
+        time.sleep(0.2)
 
         # now back to app
         self.apps.switch_to_displayed_app()
