@@ -19,7 +19,7 @@ class BookmarkMenu(Base):
 
         # Wait for the Add to bookmark frame to be dismissed
         self.marionette.switch_to_frame()
-        self.wait_for_element_not_displayed(*self._add_bookmark_to_home_screen_frame_locator)
+        self.wait_for_element_not_present(*self._add_bookmark_to_home_screen_frame_locator)
 
     def type_bookmark_title(self, value):
         element = self.marionette.find_element(*self._bookmark_title_input_locator)
