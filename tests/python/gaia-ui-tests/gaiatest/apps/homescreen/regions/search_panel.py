@@ -29,13 +29,15 @@ class SearchPanel(Base):
 
     def wait_for_everything_me_loaded(self):
         self.wait_for_condition(
-            lambda m: 'evme-loading' not in self.marionette.find_element(*self._body).get_attribute('class'))
+            lambda m: 'evme-loading' not in m.find_element(
+                *self._body).get_attribute('class'))
 
     def wait_for_everything_me_results_to_load(self):
         self.wait_for_element_displayed(*self._search_results_from_everything_me_locator)
 
     def wait_for_type(self, type):
-        self.wait_for_condition(lambda m: type.lower() in self.marionette.find_element(*self._search_title_type_locator).text.lower())
+        self.wait_for_condition(lambda m: type.lower() in m.find_element(
+            *self._search_title_type_locator).text.lower())
 
     def wait_for_app_icons_displayed(self):
         self.wait_for_element_displayed(*self._app_icon_locator)

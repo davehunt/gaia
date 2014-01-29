@@ -110,7 +110,8 @@ class Camera(Base):
                 self.wait_for_element_present(*self._viewfinder_locator)]) > 0)
 
     def wait_for_video_capturing(self):
-        self.wait_for_condition(lambda m: self.marionette.find_element(*self._controls_locator).get_attribute('data-recording') == 'true')
+        self.wait_for_condition(lambda m: m.find_element(
+            *self._controls_locator).get_attribute('data-recording') == 'true')
 
     def wait_for_video_timer_not_visible(self):
         self.wait_for_element_not_displayed(*self._video_timer_locator)
